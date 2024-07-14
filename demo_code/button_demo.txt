@@ -1,0 +1,50 @@
+#include <Arduino.h>
+
+// I2C address of the OLED display
+#define DISPLAY_ADDRESS 0x78
+
+const int ledPin = 2;    // The built-in LED pin for ESP32 on D2
+const int buttonPin = 0; // The built-in BOOT button on D0
+
+// put function declarations here:
+int myFunction(int, int);
+
+void setup()
+{
+    // Initialize the LED pin as an output
+    pinMode(ledPin, OUTPUT);
+
+    // Initialize the button pin as an input
+    pinMode(buttonPin, INPUT_PULLUP);
+
+    // Start with the LED off
+    digitalWrite(ledPin, LOW);
+}
+
+void loop()
+{
+    // Read the state of the button
+    int buttonState = digitalRead(buttonPin);
+
+    // If the button is pressed
+    if (buttonState == LOW)
+    {
+        // Toggle the state of the LED
+        digitalWrite(ledPin, !digitalRead(ledPin));
+
+        // Wait for the button to be released
+        while (digitalRead(buttonPin) == LOW)
+        {
+            delay(10);
+        }
+
+        // Debounce delay
+        delay(50);
+    }
+}
+
+// put function definitions here:
+int myFunction(int x, int y)
+{
+    return x + y;
+}
