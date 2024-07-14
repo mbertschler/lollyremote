@@ -4,11 +4,30 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 
+#define NUM_BUTTONS 4
 #define BUTTON_RED 15   // RED button on the breadboard
 #define BUTTON_GREEN 16 // RED button on the breadboard
 #define BUTTON_BLUE 17  // RED button on the breadboard
 #define BUTTON_BOARD 0  // the built-in BOOT button on D0
 #define LED_BOARD 2     // the built-in LED pin for ESP32 on D2
+
+// button array indices
+#define RED 0
+#define GREEN 1
+#define BLUE 2
+#define BOARD 3
+
+int buttonPins[NUM_BUTTONS] = {BUTTON_RED, BUTTON_GREEN, BUTTON_BLUE, BUTTON_BOARD}; // the number of the pushbutton pin
+int buttonStates[NUM_BUTTONS] = {HIGH, HIGH, HIGH, HIGH};                            // the current reading from the input pins
+int lastButtonStates[NUM_BUTTONS] = {HIGH, HIGH, HIGH, HIGH};                        // the previous reading from the input pins
+unsigned long lastDebounceTimes[NUM_BUTTONS] = {0, 0, 0, 0};                         // the last time the input pins were toggled
+String buttonNames[NUM_BUTTONS] = {"red", "green", "blue", "board"};                 // the names of the buttons
+
+// the debounce time, increase if the output flickers
+unsigned long debounceDelay = 50;
+
+// function declarations
+void checkButton(int buttonIndex);
 
 void setup()
 {
@@ -28,24 +47,43 @@ void setup()
 
 void loop()
 {
-    // Read the state of the button
-    int buttonState = digitalRead(BUTTON_GREEN);
+    checkButton(RED);
+    checkButton(GREEN);
+    checkButton(BLUE);
+    checkButton(BOARD);
+}
 
-    // If the button is pressed
-    if (buttonState == LOW)
+void checkButton(int buttonIndex)
+{
+    // read the state of the switch into a local variable:
+    int reading = digitalRead(buttonPins[buttonIndex]);
+
+    // check if the button has been pressed (i.e., reading is different from lastButtonState)
+    if (reading != lastButtonStates[buttonIndex])
     {
-        Serial.println("green button pressed");
-
-        // Toggle the state of the LED
-        digitalWrite(LED_BOARD, !digitalRead(LED_BOARD));
-
-        // Wait for the button to be released
-        while (digitalRead(BUTTON_GREEN) == LOW)
-        {
-            delay(10);
-        }
-
-        // Debounce delay
-        delay(50);
+        // reset the debouncing timer
+        lastDebounceTimes[buttonIndex] = millis();
     }
+
+    if ((millis() - lastDebounceTimes[buttonIndex]) > debounceDelay)
+    {
+        // whatever the reading is at, it's been there for longer than the debounce delay
+        // so take it as the actual current state:
+        if (reading != buttonStates[buttonIndex])
+        {
+            buttonStates[buttonIndex] = reading;
+
+            // only toggle the LED if the new button state is HIGH
+            if (buttonStates[buttonIndex] == LOW)
+            {
+                Serial.print("button ");
+                Serial.print(buttonNames[buttonIndex]);
+                Serial.println(" pressed");
+                digitalWrite(LED_BOARD, !digitalRead(LED_BOARD));
+            }
+        }
+    }
+
+    // save the reading. Next time through the loop, it'll be the lastButtonState:
+    lastButtonStates[buttonIndex] = reading;
 }
