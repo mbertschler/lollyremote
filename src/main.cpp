@@ -6,6 +6,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 
+#define SLAVE_ADDRESS 0x42
+
 #define NUM_BUTTONS 4
 #define BUTTON_RED 15     // RED button on the breadboard
 #define BUTTON_GREEN 16   // GREEN button on the breadboard
@@ -36,6 +38,10 @@ long firstEncoderPosition = 0;
 // function declarations
 void checkButton(int buttonIndex);
 void checkEncoder();
+void receiveEvent(int howMany);
+void requestEvent();
+
+char nextTransmission = 0;
 
 void setup()
 {
@@ -51,6 +57,10 @@ void setup()
 
     // start with the LED off
     digitalWrite(LED_BOARD, LOW);
+
+    Wire.begin(SLAVE_ADDRESS);    // join i2c bus with address
+    Wire.onReceive(receiveEvent); // register event
+    Wire.onRequest(requestEvent); // register event
 
     Serial.begin(115200);
     Serial.println("initialized, waiting for button presses");
@@ -92,6 +102,8 @@ void checkButton(int buttonIndex)
                 Serial.print(buttonNames[buttonIndex]);
                 Serial.println(" pressed");
                 digitalWrite(LED_BOARD, !digitalRead(LED_BOARD));
+
+                nextTransmission |= 1 << buttonIndex;
             }
         }
     }
@@ -109,4 +121,27 @@ void checkEncoder()
         Serial.print("encoder position changed: ");
         Serial.println(newPosition);
     }
+}
+
+void receiveEvent(int howMany)
+{
+    Serial.print("receiveEvent ");
+    Serial.println(howMany);
+    while (1 < Wire.available()) // loop through all but the last
+    {
+        char c = Wire.read(); // receive byte as a character
+        Serial.print(c);      // print the character
+    }
+    int x = Wire.read(); // receive byte as an integer
+    Serial.println(x);   // print the integer
+}
+
+// function that executes whenever data is requested by master
+// this function is registered as an event, see setup()
+void requestEvent()
+{
+    Serial.println("requestEvent");
+    Wire.write(nextTransmission);
+    nextTransmission = 0;
+    Wire.write("  hello ");
 }
