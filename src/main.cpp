@@ -188,10 +188,8 @@ void receiveEvent(int howMany)
 void requestEvent()
 {
     Serial.println("requestEvent");
-    char b1 = nextTransmission & 0xFF;
-    char b2 = (nextTransmission >> 8) & 0xFF;
-    Wire.write(b1);
-    Wire.write(b2);
+    int buttonsPressed = nextTransmission;
+    Wire.write(buttonsPressed);
     int left = leftEncoderPosition;
     Wire.write(left);
     int right = rightEncoderPosition;
